@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hack the Gift - Geburtstagsquiz</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #eee;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    h1, h2 {
+      color: #00ff99;
+      text-align: center;
+    }
+    button {
+      background-color: #00ff99;
+      border: none;
+      color: #121212;
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #00cc7a;
+    }
+    input {
+      padding: 8px;
+      font-size: 1rem;
+      width: 100%;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: none;
+    }
+    #game-container {
+      margin-top: 30px;
+    }
+    #message {
+      margin-top: 20px;
+      font-size: 1.1rem;
+      text-align: center;
+      color: #ffcc00;
+    }
+    #meme {
+      display: none;
+      margin: 30px auto;
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00ff99aa;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hack the Gift 🎂</h1>
+  <div id="game-container">
+    <div id="level-title"></div>
+    <div id="level-content"></div>
+    <input type="text" id="answer-input" autocomplete="off" placeholder="Deine Antwort hier" />
+    <button id="submit-btn">Antwort prüfen</button>
+    <div id="message"></div>
+  </div>
+  <img id="meme" src="meme.jpg" alt="Geburtstagsmeme für Mark" />
+
+  <script>
+    const levels = [
+      {
+        title: "🔐 LEVEL 1 – HASH IDENTIFICATION",
+        content: `Encrypted password hash:<br>
+                  <code>e99a18c428cb38d5f260853678922e03</code>`,
+        checkAnswer: (ans) => {
+          if(ans.toLowerCase() === "md5") return "algorithm";
+          return false;
+        },
+        nextQuestion: {
+          text: "What is the original password?",
+          checkAnswer: (ans) => ans === "abc123"
+        }
+      },
+      {
+        title: "📡 LEVEL 2 – BASE64 DECRYPTION",
+        content: `A hidden message was intercepted:<br>
+                  <code>U3RvcCByZWFkaW5nIG15IGZpbGVzIQ==</code>`,
+        checkAnswer: (ans) => ans.toLowerCase() === "stop reading my files!"
+      },
+      {
+        title: "🔄 LEVEL 3 – XOR DECRYPTION",
+        content: `Ciphertext (hex): 0x0a 0x1d 0x10 0x1f<br>
+                  Key: 0x55`,
+        checkAnswer: (ans) => ans.toUpperCase() === "WELC"
+      },
+      {
+        title: "🧠 LEVEL 4 – BITCOIN TRANSATION CONFIRMATIONS",
+        content: `Wie viele Bestätigungen (Confirmations) sind im Bitcoin-Netzwerk mindestens empfohlen, um eine Transaktion als sicher zu betrachten?`,
+        checkAnswer: (ans) => ans.trim() === "6"
+      },
+      {
+        title: "🔓 LEVEL 5 – ESCALATION & UNLOCK",
+        content: `>>> Attempting privilege escalation...<br>
+                  >>> Success: ROOT ACCESS GRANTED.<br>
+                  >>> Downloading Final_Message.txt...`,
+        checkAnswer: () => true // kein Input nötig
+      }
+    ];
+
+    const levelTitle = document.getElementById("level-title");
+    const levelContent = document.getElementById("level-content");
+    const answerInput = document.getElementById("answer-input");
+    const submitBtn = document.getElementById("submit-btn");
+    const messageDiv = document.getElementById("message");
+    const memeImg = document.getElementById("meme");
+
+    let currentLevel = 0;
+    let waitingForNextQuestion = false;
+
+    function showLevel() {
+      messageDiv.textContent = "";
+      memeImg.style.display = "none";
+      answerInput.value = "";
+      answerInput.disabled = false;
+      messageDiv.style.color = "#00ff99";
+
+      const level = levels[currentLevel];
+      levelTitle.innerHTML = level.title;
+      levelContent.innerHTML = level.content;
+
+      if(currentLevel === 4) {
+        // Level 5: Eingabefeld verstecken, Button-Text ändern
+        answerInput.style.display = "none";
+        submitBtn.style.display = "inline-block";
+        submitBtn.textContent = "Press Me";
+      } else {
+        // Level 1-4: Eingabefeld + normaler Button
+        answerInput.style.display = "block";
+        submitBtn.style.display = "inline-block";
+        submitBtn.textContent = "Antwort prüfen";
+
+        if(level.nextQuestion){
+          waitingForNextQuestion = false;
+          answerInput.placeholder = level.nextQuestion.text;
+        } else {
+          waitingForNextQuestion = false;
+          answerInput.placeholder = "Deine Antwort hier";
+        }
+      }
+    }
+
+    function showMessage(text, isError = false) {
+      messageDiv.style.color = isError ? "#ff5555" : "#00ff99";
+      messageDiv.textContent = text;
+    }
+
+    submitBtn.addEventListener("click", () => {
+      if(currentLevel >= levels.length) return;
+
+      if(currentLevel === 4) {
+        // Level 5: Button „Press Me“ → Finale anzeigen
+        showFinalMessage();
+        currentLevel++;
+        answerInput.style.display = "none";
+        submitBtn.style.display = "none";
+        return;
+      }
+
+      const ans = answerInput.value.trim();
+      const level = levels[currentLevel];
+
+      if(currentLevel === 0 && !waitingForNextQuestion) {
+        const res = level.checkAnswer(ans);
+        if(res === "algorithm") {
+          showMessage("✅ Richtig! Jetzt das Passwort eingeben.");
+          answerInput.value = "";
+          answerInput.placeholder = level.nextQuestion.text;
+          waitingForNextQuestion = true;
+        } else {
+          showMessage("❌ Falsche Antwort. Versuch's nochmal.", true);
+        }
+      }
+      else if(currentLevel === 0 && waitingForNextQuestion) {
+        if(level.nextQuestion.checkAnswer(ans)) {
+          showMessage("✅ Passwort korrekt! Weiter zum nächsten Level.");
+          currentLevel++;
+          waitingForNextQuestion = false;
+          setTimeout(showLevel, 1500);
+        } else {
+          showMessage("❌ Falsches Passwort. Versuch's nochmal.", true);
+        }
+      }
+      else {
+        const res = level.checkAnswer(ans);
+        if(res === true) {
+          showMessage("✅ Richtig! Weiter zum nächsten Level.");
+          currentLevel++;
+          setTimeout(() => {
+            if(currentLevel < levels.length) {
+              showLevel();
+            } else {
+              showFinalMessage();
+            }
+          }, 1500);
+        } else {
+          showMessage("❌ Falsche Antwort. Versuch's nochmal.", true);
+        }
+      }
+    });
+
+    function showFinalMessage() {
+      levelTitle.innerHTML = "🎉 Herzlichen Glückwunsch! 🎉";
+      levelContent.innerHTML = `
+        <p>Schau unter dein Sofa:<br>
+        Dort wartet eine Überraschung!</p>
+      `;
+      answerInput.style.display = "none";
+      submitBtn.style.display = "none";
+
+      setTimeout(() => {
+        memeImg.style.display = "block";
+      }, 10000);
+    }
+
+    // Starte das Spiel
+    showLevel();
+  </script>
+</body>
+</html>
+
